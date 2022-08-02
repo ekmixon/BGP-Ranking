@@ -46,9 +46,9 @@ class DeepArchive():
             filedate = parser.parse(p.name.split('.')[0]).date()
             if filedate >= last_day_to_keep:
                 continue
-            to_archive['{}.zip'.format(filedate.strftime('%Y%m'))].append(p)
+            to_archive[f"{filedate.strftime('%Y%m')}.zip"].append(p)
         if to_archive:
-            self.logger.info('Found old files. Archiving: {}'.format(', '.join(to_archive.keys())))
+            self.logger.info(f"Found old files. Archiving: {', '.join(to_archive.keys())}")
         else:
             self.logger.debug('No old files.')
         for archivename, path_list in to_archive.items():

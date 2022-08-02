@@ -169,6 +169,7 @@ class ASNsGlobalRanking(Resource):
     @api.doc(body=asns_global_ranking_fields)
     def post(self):
         query: Dict = request.get_json(force=True)  # type: ignore
-        to_return: Dict[str, Union[str, Dict[str, Any]]] = {'meta': query, 'response': {}}
-        to_return['response'] = bgpranking.asns_global_ranking(**query)['response']
-        return to_return
+        return {
+            'meta': query,
+            'response': bgpranking.asns_global_ranking(**query)['response'],
+        }

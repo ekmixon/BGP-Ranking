@@ -60,8 +60,9 @@ class RawFilesParser():
         return self.extract_ipv4(f.getvalue())
 
     def parse_raw_files(self) -> None:
-        nb_unparsable_files = len([f for f in self.unparsable_dir.iterdir() if f.is_file()])
-        if nb_unparsable_files:
+        if nb_unparsable_files := len(
+            [f for f in self.unparsable_dir.iterdir() if f.is_file()]
+        ):
             self.logger.warning(f'{self.source}: Was unable to parse {nb_unparsable_files} files.')
         try:
             for filepath in self.files_to_parse:

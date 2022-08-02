@@ -102,13 +102,15 @@ class Fetcher():
             and the newest file is always the first one we process
         '''
         to_check = []
-        to_check_new = sorted([f for f in self.directory.iterdir() if f.is_file()])
-        if to_check_new:
+        if to_check_new := sorted(
+            [f for f in self.directory.iterdir() if f.is_file()]
+        ):
             # we have files waiting to be processed
             self.logger.debug(f'{self.vendor}-{self.listname}: {len(to_check_new)} file(s) are waiting to be processed')
             to_check.append(to_check_new[-1])
-        to_check_archive = sorted([f for f in self.archive_dir.iterdir() if f.is_file()])
-        if to_check_archive:
+        if to_check_archive := sorted(
+            [f for f in self.archive_dir.iterdir() if f.is_file()]
+        ):
             # we have files already processed, in the archive
             self.logger.debug(f'{self.vendor}-{self.listname}: {len(to_check_archive)} file(s) have been processed')
             to_check.append(to_check_archive[-1])
@@ -140,7 +142,7 @@ class Fetcher():
                         if self.__same_as_last(content):
                             return
                         self.logger.info(f'{self.vendor}-{self.listname}: Got a new file!')
-                        with (self.directory / '{}.txt'.format(datetime.now().isoformat())).open('wb') as f:
+                        with (self.directory / f'{datetime.now().isoformat()}.txt').open('wb') as f:
                             f.write(content)
         except PidFileError:
             self.logger.info(f'{self.vendor}-{self.listname}: Fetcher already running')

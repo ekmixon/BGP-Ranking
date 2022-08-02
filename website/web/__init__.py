@@ -104,18 +104,15 @@ def country_history_callback():
 @app.route('/ipasn', methods=['GET', 'POST'])
 def ipasn():
     d: Optional[Dict] = None
-    if request.method == 'POST':
-        d = request.form
-    elif request.method == 'GET':
+    if request.method == 'GET':
         d = request.args
 
+    elif request.method == 'POST':
+        d = request.form
     if not d or 'ip' not in d:
         return render_template('ipasn.html')
     else:
-        if isinstance(d['ip'], list):
-            ip = d['ip'][0]
-        else:
-            ip = d['ip']
+        ip = d['ip'][0] if isinstance(d['ip'], list) else d['ip']
     ipasn = get_ipasn()
     response = ipasn.query(first=(date.today() - timedelta(days=60)).isoformat(),
                            aggregate=True, ip=ip)

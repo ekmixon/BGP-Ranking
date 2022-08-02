@@ -64,13 +64,14 @@ class StatsRIPE():
             parameters['query_time'] = (datetime.now() - timedelta(hours=8)).isoformat()
 
         d = parse(parameters['query_time'])
-        if d.hour == 8 and d.minute == 0 and d.second == 0:
-            pass
-        else:
+        if d.hour != 8 or d.minute != 0 or d.second != 0:
             d = d.replace(hour=min([0, 8, 16], key=lambda x: abs(x - d.hour)),
                           minute=0, second=0, microsecond=0)
             parameters['query_time'] = d.isoformat()
-        cache_filename = '&'.join(['{}={}'.format(k, str(v).lower()) for k, v in parameters.items()])
+        cache_filename = '&'.join(
+            [f'{k}={str(v).lower()}' for k, v in parameters.items()]
+        )
+
         c_path = self.cache_dir / method / cache_filename
         if c_path.exists():
             with open(c_path, 'r') as f:
@@ -79,7 +80,10 @@ class StatsRIPE():
 
     def _save_cache(self, method, parameters, response):
         parameters['query_time'] = response['data']['query_time']
-        cache_filename = '&'.join(['{}={}'.format(k, str(v).lower()) for k, v in parameters.items()])
+        cache_filename = '&'.join(
+            [f'{k}={str(v).lower()}' for k, v in parameters.items()]
+        )
+
         safe_create_dir(self.cache_dir / method)
         c_path = self.cache_dir / method / cache_filename
         with open(c_path, 'w') as f:
@@ -87,10 +91,15 @@ class StatsRIPE():
 
     def _get(self, method: str, parameters: Dict) -> Dict:
         parameters['sourceapp'] = self.sourceapp
-        cached = self._get_cache(method, parameters)
-        if cached:
+        if cached := self._get_cache(method, parameters):
             return cached
-        url = self.url.format(method=method, parameters='&'.join(['{}={}'.format(k, str(v).lower()) for k, v in parameters.items()]))
+        url = self.url.format(
+            method=method,
+            parameters='&'.join(
+                [f'{k}={str(v).lower()}' for k, v in parameters.items()]
+            ),
+        )
+
         response = requests.get(url)
         j_content = response.json()
         self._save_cache(method, parameters, j_content)

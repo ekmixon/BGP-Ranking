@@ -70,15 +70,15 @@ class ShadowServerFetcher():
         self.logger.debug('Dictionary created.')
 
     def __normalize_day(self, day: Optional[Dates]=None) -> str:
-        if not day:
-            if not self.last_available_day:
-                raise Exception('Unable to figure out the last available day. You need to run build_daily_dict first')
-            to_return = self.last_available_day
-        else:
+        if day:
             if isinstance(day, str):
                 to_return = parse(day).date()
             elif isinstance(day, datetime):
                 to_return = day.date()
+        elif not self.last_available_day:
+            raise Exception('Unable to figure out the last available day. You need to run build_daily_dict first')
+        else:
+            to_return = self.last_available_day
         return to_return.isoformat()
 
     def __split_name(self, name):
@@ -99,10 +99,10 @@ class ShadowServerFetcher():
 
         if isinstance(type_details, str):
             main_type = type_details
-            config['name'] = '{}-{}'.format(prefix, type_details)
+            config['name'] = f'{prefix}-{type_details}'
         else:
             main_type = type_details[0]
-            config['name'] = '{}-{}'.format(prefix, '_'.join(type_details))
+            config['name'] = f"{prefix}-{'_'.join(type_details)}"
 
         if main_type not in self.known_list_types:
             self.logger.warning(f'Unknown type: {main_type}. Please update the config creator script.')
@@ -154,7 +154,10 @@ class ShadowServerFetcher():
                 # Validate new config file with old
                 config_current = json.load(f)
                 if config_current != config:
-                    self.logger.warning('The config file created by this script is different from the one on disk: \n{}\n{}'.format(json.dumps(config), json.dumps(config_current)))
+                    self.logger.warning(
+                        f'The config file created by this script is different from the one on disk: \n{json.dumps(config)}\n{json.dumps(config_current)}'
+                    )
+
         # Init list directory
         directory = self.storage_directory / config['vendor'] / config['name']
         safe_create_dir(directory)
@@ -174,8 +177,7 @@ class ShadowServerFetcher():
             # Check if the file we're trying to download has already been downloaded. Skip if True.
             uuid = url.split('/')[-1]
             if (storage_dir / 'meta' / 'last_download').exists():
-                with open(storage_dir / 'meta' / 'last_download') as _fr:
-                    last_download_uuid = _fr.read()
+                last_download_uuid = Path(storage_dir / 'meta' / 'last_download').read_text()
                 if last_download_uuid == uuid:
                     self.logger.debug(f'Already downloaded: {url}.')
                     continue

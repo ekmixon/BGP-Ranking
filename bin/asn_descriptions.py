@@ -35,9 +35,7 @@ class ASNDescriptions(AbstractManager):
         if not self.asn_meta.exists('ans_description_last_update'):
             return True
         last_update = parse(self.asn_meta.get('ans_description_last_update'))  # type: ignore
-        if last_update < current_last_modified:
-            return True
-        return False
+        return last_update < current_last_modified
 
     def load_descriptions(self):
         if not self.__update_available():
@@ -50,17 +48,18 @@ class ASNDescriptions(AbstractManager):
         new_asn = 0
         new_description = 0
         for asn, descr in re.findall('as=AS(.*)&.*</a> (.*)\n', r.text):
-            existing_descriptions = self.asn_meta.hgetall(f'{asn}|descriptions')
-            if not existing_descriptions:
-                self.logger.debug(f'New ASN: {asn} - {descr}')
-                p.hset(f'{asn}|descriptions', last_modified, descr)
-                new_asn += 1
-            else:
+            if existing_descriptions := self.asn_meta.hgetall(
+                f'{asn}|descriptions'
+            ):
                 last_descr = sorted(existing_descriptions.keys(), reverse=True)[0]
                 if descr != existing_descriptions[last_descr]:
                     self.logger.debug(f'New description for {asn}: {existing_descriptions[last_descr]} -> {descr}')
                     p.hset(f'{asn}|descriptions', last_modified, descr)
                     new_description += 1
+            else:
+                self.logger.debug(f'New ASN: {asn} - {descr}')
+                p.hset(f'{asn}|descriptions', last_modified, descr)
+                new_asn += 1
         p.set('ans_description_last_update', last_modified)
         p.execute()
         self.logger.info(f'Done with import. New ASNs: {new_asn}, new descriptions: {new_description}')

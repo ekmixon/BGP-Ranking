@@ -32,10 +32,7 @@ class Sanitizer(AbstractManager):
     def _sanitize_ip(self, pipeline: Redis, uuid: str, data: Dict) -> Optional[Dict]:
         try:
             ip = ipaddress.ip_address(data['ip'])
-            if isinstance(ip, ipaddress.IPv6Address):
-                address_family = 'v6'
-            else:
-                address_family = 'v4'
+            address_family = 'v6' if isinstance(ip, ipaddress.IPv6Address) else 'v4'
         except ValueError:
             self.logger.info(f"Invalid IP address: {data['ip']}")
             return None
@@ -63,10 +60,7 @@ class Sanitizer(AbstractManager):
     def _sanitize_network(self, pipeline: Redis, uuid: str, data: Dict) -> List[Dict]:
         try:
             network = ipaddress.ip_network(data['ip'])
-            if isinstance(network, ipaddress.IPv6Network):
-                address_family = 'v6'
-            else:
-                address_family = 'v4'
+            address_family = 'v6' if isinstance(network, ipaddress.IPv6Network) else 'v4'
         except ValueError:
             self.logger.info(f"Invalid IP network: {data['ip']}")
             return []
@@ -121,13 +115,12 @@ class Sanitizer(AbstractManager):
                 if not data:
                     continue
                 if '/' in data['ip']:
-                    entries_for_cache = self._sanitize_network(pipeline, uuid, data)
-                    if entries_for_cache:
+                    if entries_for_cache := self._sanitize_network(
+                        pipeline, uuid, data
+                    ):
                         for_cache += entries_for_cache
-                else:
-                    entry_for_cache = self._sanitize_ip(pipeline, uuid, data)
-                    if entry_for_cache:
-                        for_cache.append(entry_for_cache)
+                elif entry_for_cache := self._sanitize_ip(pipeline, uuid, data):
+                    for_cache.append(entry_for_cache)
 
             pipeline.execute()
             self.redis_intake.delete(*uuids)

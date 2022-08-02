@@ -16,15 +16,16 @@ logger = logging.getLogger('Helpers')
 
 @lru_cache(64)
 def get_homedir() -> Path:
-    if not os.environ.get(env_global_name):
-        # Try to open a .env file in the home directory if it exists.
-        if (Path(__file__).resolve().parent.parent.parent / '.env').exists():
-            with (Path(__file__).resolve().parent.parent.parent / '.env').open() as f:
-                for line in f:
-                    key, value = line.strip().split('=', 1)
-                    if value[0] in ['"', "'"]:
-                        value = value[1:-1]
-                    os.environ[key] = value
+    if (
+        not os.environ.get(env_global_name)
+        and (Path(__file__).resolve().parent.parent.parent / '.env').exists()
+    ):
+        with (Path(__file__).resolve().parent.parent.parent / '.env').open() as f:
+            for line in f:
+                key, value = line.strip().split('=', 1)
+                if value[0] in ['"', "'"]:
+                    value = value[1:-1]
+                os.environ[key] = value
 
     if not os.environ.get(env_global_name):
         guessed_home = Path(__file__).resolve().parent.parent.parent
@@ -66,12 +67,10 @@ def get_config(config_type: str, entry: str, quiet: bool=False) -> Any:
     if config_type in configs:
         if entry in configs[config_type]:
             return configs[config_type][entry]
-        else:
-            if not quiet:
-                logger.warning(f'Unable to find {entry} in config file.')
-    else:
         if not quiet:
-            logger.warning(f'No {config_type} config file available.')
+            logger.warning(f'Unable to find {entry} in config file.')
+    elif not quiet:
+        logger.warning(f'No {config_type} config file available.')
     if not quiet:
         logger.warning(f'Falling back on sample config, please initialize the {config_type} config file.')
     with (get_homedir() / 'config' / f'{config_type}.json.sample').open() as _c:

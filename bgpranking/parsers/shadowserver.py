@@ -12,11 +12,7 @@ def parse_raw_file(self, f: BytesIO) -> Generator[Tuple[str, datetime], None, No
     default_ts = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     reader = DictReader(StringIO(f.getvalue().decode()))
     for row in reader:
-        if 'timestamp' in row:
-            ts = parse(row['timestamp'])
-        else:
-            ts = default_ts
-
+        ts = parse(row['timestamp']) if 'timestamp' in row else default_ts
         if 'ip' in row:
             ip = row['ip']
         elif 'src_ip' in row:

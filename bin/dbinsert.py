@@ -34,9 +34,7 @@ class DBInsertManager(AbstractManager):
             return
         self.logger.debug(message)
 
-        while True:
-            if self.shutdown_requested():
-                break
+        while not self.shutdown_requested():
             try:
                 if not self.ipasn.is_up:
                     break

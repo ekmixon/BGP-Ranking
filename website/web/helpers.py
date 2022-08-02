@@ -15,41 +15,34 @@ from bgpranking.default import get_homedir
 
 
 def src_request_ip(request) -> str:
-    # NOTE: X-Real-IP is the IP passed by the reverse proxy in the headers.
-    real_ip = request.headers.get('X-Real-IP')
-    if not real_ip:
-        real_ip = request.remote_addr
-    return real_ip
+    return request.headers.get('X-Real-IP') or request.remote_addr
 
 
 @lru_cache(64)
 def get_secret_key() -> bytes:
     secret_file_path: Path = get_homedir() / 'secret_key'
-    if not secret_file_path.exists() or secret_file_path.stat().st_size < 64:
-        if not secret_file_path.exists() or secret_file_path.stat().st_size < 64:
-            with secret_file_path.open('wb') as f:
-                f.write(os.urandom(64))
+    if (
+        not secret_file_path.exists() or secret_file_path.stat().st_size < 64
+    ) and (
+        not secret_file_path.exists() or secret_file_path.stat().st_size < 64
+    ):
+        with secret_file_path.open('wb') as f:
+            f.write(os.urandom(64))
     with secret_file_path.open('rb') as f:
         return f.read()
 
 
 def load_session():
-    if request.method == 'POST':
-        d = request.form
-    elif request.method == 'GET':
+    if request.method == 'GET':
         d = request.args  # type: ignore
 
+    elif request.method == 'POST':
+        d = request.form
     for key in d:
         if '_all' in d.getlist(key):
             session.pop(key, None)
-        else:
-            values = [v for v in d.getlist(key) if v]
-            if values:
-                if len(values) == 1:
-                    session[key] = values[0]
-                else:
-                    session[key] = values
-
+        elif values := [v for v in d.getlist(key) if v]:
+            session[key] = values[0] if len(values) == 1 else values
     # Edge cases
     if 'asn' in session:
         session.pop('country', None)

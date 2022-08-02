@@ -15,7 +15,7 @@ chunk_size = 100000
 def process_chunk(src: Redis, dst: Redis, keys: Set[str]):
     src_pipeline = src.pipeline()
     [src_pipeline.type(key) for key in keys]
-    to_process = {key: key_type for key, key_type in zip(keys, src_pipeline.execute())}
+    to_process = dict(zip(keys, src_pipeline.execute()))
 
     src_pipeline = src.pipeline()
     for key, key_type in to_process.items():
@@ -39,7 +39,7 @@ def process_chunk(src: Redis, dst: Redis, keys: Set[str]):
         elif to_process[key] == b"set":
             dest_pipeline.sadd(key, *content)
         elif to_process[key] == b"zset":
-            dest_pipeline.zadd(key, {value: rank for value, rank in content})
+            dest_pipeline.zadd(key, dict(content))
         elif to_process[key] == b"hash":
             dest_pipeline.hmset(key, content)
 

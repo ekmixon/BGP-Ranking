@@ -29,7 +29,7 @@ class Ranking(AbstractManager):
     def rank_a_day(self, day: str):
         asns_aggregation_key_v4 = f'{day}|asns|v4'
         asns_aggregation_key_v6 = f'{day}|asns|v6'
-        to_delete = set([asns_aggregation_key_v4, asns_aggregation_key_v6])
+        to_delete = {asns_aggregation_key_v4, asns_aggregation_key_v6}
         r_pipeline = self.ranking.pipeline()
         cached_meta: Dict[str, Dict[str, Any]] = {}
         config_files = load_all_modules_configs()
@@ -56,8 +56,13 @@ class Ranking(AbstractManager):
                         # This should not happen and requires a DB cleanup.
                         self.logger.critical(f'Fucked up prefix in "{day}|{source}|{asn}"')
                         continue
-                    ips = set([ip_ts.split('|')[0]
-                               for ip_ts in self.storage.smembers(f'{day}|{source}|{asn}|{prefix}')])
+                    ips = {
+                        ip_ts.split('|')[0]
+                        for ip_ts in self.storage.smembers(
+                            f'{day}|{source}|{asn}|{prefix}'
+                        )
+                    }
+
                     py_prefix = ip_network(prefix)
                     prefix_rank = float(len(ips)) / py_prefix.num_addresses
                     r_pipeline.zadd(f'{day}|{source}|{asn}|v{py_prefix.version}|prefixes', {prefix: prefix_rank})

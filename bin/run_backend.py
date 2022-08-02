@@ -15,17 +15,18 @@ from bgpranking.default import get_homedir, get_socket_path, get_config
 
 
 def check_running(name: str) -> bool:
-    if name == "storage":
-        r = Redis(get_config('generic', 'storage_db_hostname'), get_config('generic', 'storage_db_port'))
-    elif name == "ranking":
+    if name == "ranking":
         r = Redis(get_config('generic', 'ranking_db_hostname'), get_config('generic', 'ranking_db_port'))
+    elif name == "storage":
+        r = Redis(get_config('generic', 'storage_db_hostname'), get_config('generic', 'storage_db_port'))
     else:
         socket_path = get_socket_path(name)
-        if not os.path.exists(socket_path):
+        if os.path.exists(socket_path):
+            r = Redis(unix_socket_path=socket_path)
+        else:
             return False
-        r = Redis(unix_socket_path=socket_path)
     try:
-        return True if r.ping() else False
+        return bool(r.ping())
     except ConnectionError:
         return False
 
@@ -98,18 +99,19 @@ def check_all(stop: bool=False):
     backends: Dict[str, bool] = {'cache': False, 'storage': False, 'ranking': False,
                                  'intake': False, 'prepare': False}
     while True:
-        for db_name in backends.keys():
+        for db_name in backends:
             print(backends[db_name])
             try:
                 backends[db_name] = check_running(db_name)
             except Exception:
                 backends[db_name] = False
-        if stop:
-            if not any(running for running in backends.values()):
-                break
-        else:
-            if all(running for running in backends.values()):
-                break
+        if (
+            stop
+            and not any(backends.values())
+            or not stop
+            and all(backends.values())
+        ):
+            break
         for db_name, running in backends.items():
             if not stop and not running:
                 print(f"Waiting on {db_name} to start")

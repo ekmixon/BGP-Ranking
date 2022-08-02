@@ -58,16 +58,15 @@ class BGPRanking():
                 raise InvalidDateFormat('Unable to parse the date. Should be YYYY-MM-DD.')
 
     def _ranking_cache_wrapper(self, key):
-        if not self.cache.exists(key):
-            if self.ranking.exists(key):
-                try:
-                    content: List[Tuple[bytes, float]] = self.ranking.zrangebyscore(key, '-Inf', '+Inf', withscores=True)
+        if not self.cache.exists(key) and self.ranking.exists(key):
+            try:
+                content: List[Tuple[bytes, float]] = self.ranking.zrangebyscore(key, '-Inf', '+Inf', withscores=True)
                     # Cache for 10 hours
-                    self.cache.zadd(key, {value: rank for value, rank in content})
-                    self.cache.expire(key, 36000)
-                except Exception as e:
-                    self.logger.exception(f'Something went poorly when caching {key}.')
-                    raise e
+                self.cache.zadd(key, dict(content))
+                self.cache.expire(key, 36000)
+            except Exception as e:
+                self.logger.exception(f'Something went poorly when caching {key}.')
+                raise e
 
     def asns_global_ranking(self, date: Optional[Dates]=None, source: Union[list, str]='',
                             ipversion: str='v4', limit: int=100):
@@ -202,16 +201,16 @@ class BGPRanking():
 
         if source:
             to_return['meta']['source'] = source
-            if isinstance(source, list):
-                sources = source
-            else:
-                sources = [source]
+            sources = source if isinstance(source, list) else [source]
         else:
             sources = self.get_sources(d)['response']
 
         for source in sources:
-            ips = set([ip_ts.split('|')[0]
-                       for ip_ts in self.storage.smembers(f'{d}|{source}|{asn}|{prefix}')])
+            ips = {
+                ip_ts.split('|')[0]
+                for ip_ts in self.storage.smembers(f'{d}|{source}|{asn}|{prefix}')
+            }
+
             [to_return['response'][ip].append(source) for ip in ips]
         return to_return
 
@@ -297,4 +296,4 @@ class BGPRanking():
         for modulepath in get_modules():
             with open(modulepath) as f:
                 loaded.append(json.load(f))
-        return {'{}-{}'.format(config['vendor'], config['name']): config for config in loaded}
+        return {f"{config['vendor']}-{config['name']}": config for config in loaded}

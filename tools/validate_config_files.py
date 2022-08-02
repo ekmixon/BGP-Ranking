@@ -85,10 +85,8 @@ if __name__ == '__main__':
     parser.add_argument('--update', default=False, action='store_true', help='Update the user config with the entries from the sample config if entries are missing')
     args = parser.parse_args()
 
-    if args.check:
-        if validate_generic_config_file():
-            print(f"The entries in {get_homedir() / 'config' / 'generic.json'} are valid.")
+    if args.check and validate_generic_config_file():
+        print(f"The entries in {get_homedir() / 'config' / 'generic.json'} are valid.")
 
-    if args.update:
-        if not update_user_configs():
-            print(f"No updates needed in {get_homedir() / 'config' / 'generic.json'}.")
+    if args.update and not update_user_configs():
+        print(f"No updates needed in {get_homedir() / 'config' / 'generic.json'}.")

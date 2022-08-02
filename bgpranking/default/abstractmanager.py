@@ -54,8 +54,7 @@ class AbstractManager(ABC):
             self.__redis.zrem('running', self.script_name)
 
     def long_sleep(self, sleep_in_sec: int, shutdown_check: int=10) -> bool:
-        if shutdown_check > sleep_in_sec:
-            shutdown_check = sleep_in_sec
+        shutdown_check = min(shutdown_check, sleep_in_sec)
         sleep_until = datetime.now() + timedelta(seconds=sleep_in_sec)
         while sleep_until > datetime.now():
             time.sleep(shutdown_check)
@@ -64,8 +63,7 @@ class AbstractManager(ABC):
         return True
 
     async def long_sleep_async(self, sleep_in_sec: int, shutdown_check: int=10) -> bool:
-        if shutdown_check > sleep_in_sec:
-            shutdown_check = sleep_in_sec
+        shutdown_check = min(shutdown_check, sleep_in_sec)
         sleep_until = datetime.now() + timedelta(seconds=sleep_in_sec)
         while sleep_until > datetime.now():
             await asyncio.sleep(shutdown_check)
@@ -75,9 +73,7 @@ class AbstractManager(ABC):
 
     def shutdown_requested(self) -> bool:
         try:
-            return True if self.__redis.exists('shutdown') else False
-        except ConnectionRefusedError:
-            return True
+            return bool(self.__redis.exists('shutdown'))
         except ConnectionError:
             return True
 
@@ -87,9 +83,7 @@ class AbstractManager(ABC):
     def run(self, sleep_in_sec: int) -> None:
         self.logger.info(f'Launching {self.__class__.__name__}')
         try:
-            while True:
-                if self.shutdown_requested():
-                    break
+            while not self.shutdown_requested():
                 try:
                     if self.process:
                         if self.process.poll() is not None:
@@ -130,9 +124,7 @@ class AbstractManager(ABC):
     async def run_async(self, sleep_in_sec: int) -> None:
         self.logger.info(f'Launching {self.__class__.__name__}')
         try:
-            while True:
-                if self.shutdown_requested():
-                    break
+            while not self.shutdown_requested():
                 try:
                     if self.process:
                         if self.process.poll() is not None:

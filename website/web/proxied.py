@@ -8,10 +8,8 @@ class ReverseProxied():
         self.app = app
 
     def __call__(self, environ: MutableMapping[str, Any], start_response: Any) -> Any:
-        scheme = environ.get('HTTP_X_FORWARDED_PROTO')
-        if not scheme:
-            scheme = environ.get('HTTP_X_SCHEME')
-
-        if scheme:
+        if scheme := environ.get('HTTP_X_FORWARDED_PROTO') or environ.get(
+            'HTTP_X_SCHEME'
+        ):
             environ['wsgi.url_scheme'] = scheme
         return self.app(environ, start_response)
